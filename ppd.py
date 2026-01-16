@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os, zipfile, glob, warnings, tempfile
 from argparse import ArgumentParser, ArgumentTypeError
+from pathlib import Path
 from typing import Optional, Literal
 
 __version__ = '1.0.0'
@@ -15,6 +16,11 @@ IntLoggingLevelType = Literal[0, 1, 2, 3, 4, 5, 6, 7]
 # log_level: IntLoggingLevelType = 4
 # packages: list
 # directory: Optional[str]
+
+
+def red_text(message: str) -> str:
+    return '\033[31m' + message + '\033[0m'
+
 
 def logging_level(level: LoggingLevelType) -> int:
     if level not in ALLOWED_LOGGING_LEVEL_VALUES:
@@ -49,7 +55,9 @@ def pip_log_flags(temp_filename: str, log_level: IntLoggingLevelType) -> str:
             raise ValueError(f'Invalid logging level: {log_level}')
 
 
-def log(message: str, current_level: int, max_level: int = 4) -> None:
+def log(message: str, current_level: int, max_level: int = 4, red: bool = False) -> None:
+    if red:
+        message = red_text(message)
     if max_level <= current_level:
         print(message)
 
@@ -66,21 +74,25 @@ def download_wheels(packages: list[str], directory: Optional[str], log_level: In
 
 def extract_wheels(save_wheel: bool, save_dist_info: bool, packages: list[str],
                    directory: Optional[str], log_level: IntLoggingLevelType) -> None:
-    dir_ = directory or os.getcwd()
-    for filename in glob.glob('*.whl', root_dir=dir_):
-        with zipfile.ZipFile(filename) as wheel:
-            log(f'Extracting {filename}', log_level)
+    directory = Path(directory or os.getcwd()).resolve().absolute()
+    for filename in glob.glob('*.whl', root_dir=directory):
+        full_path = directory / filename
+        with zipfile.ZipFile(full_path) as wheel:
+            log(f'Extracting {full_path}', log_level)
             if not save_dist_info:
                 for file_info in wheel.infolist():
                     if '.dist-info' in file_info.filename or file_info.filename.endswith('.dist-info/RECORD'):
                         continue
-                    wheel.extract(file_info, dir_)
+                    wheel.extract(file_info, directory)
             else:
-                wheel.extractall(dir_)
-            log(f'Extracted {filename} to {dir_}', log_level)
+                wheel.extractall(directory)
+            log(f'Extracted {filename} to {directory}', log_level)
         if not save_wheel:
-            os.remove(filename)
-            log(f'Removed {filename}', log_level)
+            if full_path.exists():
+                os.remove(full_path)
+                log(f'Removed {filename}', log_level)
+            else:
+                log(red_text(f'Could not find {filename}'), log_level, 3)
     log(f'Successfully extracted {" ".join(packages)}', log_level)
 
 
