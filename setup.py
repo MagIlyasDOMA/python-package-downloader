@@ -1,11 +1,13 @@
-from pip_setuptools import setup, clean
+from pip_setuptools import setup, clean, find_packages, requirements
 
 clean()
 setup(
     name='python-package-downloader',
     version='1.0.0',
     py_modules=[],
-    entry_points=dict(console_scripts=['ppd=ppd:main']),
+    packages=find_packages(),
+    entry_points=dict(console_scripts=['ppd=python_package_downloader:main']),
+    install_requires=requirements(),
     author="Маг Ильяс DOMA (MagIlyasDOMA)",
     author_email='magilyas.doma.09@list.ru',
     url='https://github.com/MagIlyasDOMA/python-package-downloader',

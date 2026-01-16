@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import os, zipfile, glob, warnings, tempfile
+import os, glob, warnings, tempfile, sys, zipfile, io
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 from typing import Optional, Literal
+from pkginfo import Wheel
 
 __version__ = '1.0.0'
 
@@ -16,6 +17,12 @@ IntLoggingLevelType = Literal[0, 1, 2, 3, 4, 5, 6, 7]
 # log_level: IntLoggingLevelType = 4
 # packages: list
 # directory: Optional[str]
+
+
+def no_args_is_help(parser: ArgumentParser):
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(2)
 
 
 def red_text(message: str) -> str:
@@ -55,11 +62,24 @@ def pip_log_flags(temp_filename: str, log_level: IntLoggingLevelType) -> str:
             raise ValueError(f'Invalid logging level: {log_level}')
 
 
-def log(message: str, current_level: int, max_level: int = 4, red: bool = False) -> None:
+def log(message: str, current_level: IntLoggingLevelType, max_level: IntLoggingLevelType = 4, red: bool = False) -> None:
     if red:
         message = red_text(message)
     if max_level <= current_level:
         print(message)
+
+
+def write_wheel_requirements(wheel_file: Wheel, requirements_file: Optional[io.TextIOWrapper]):
+    if requirements_file:
+        log(f'Adding {wheel_file.name} package requirements to the {requirements_file.name} file',
+            None, 5)
+        log(f'{wheel_file.name} package requirements:', None, 7)
+        for req in wheel_file.requires_dist:
+            if '; extra' in req:
+                break
+            requirements_file.write(f'{req}\n')
+            log(req, None, 7)
+
 
 
 def download_wheels(packages: list[str], directory: Optional[str], log_level: IntLoggingLevelType) -> None:
@@ -73,10 +93,16 @@ def download_wheels(packages: list[str], directory: Optional[str], log_level: In
 
 
 def extract_wheels(save_wheel: bool, save_dist_info: bool, packages: list[str],
-                   directory: Optional[str], log_level: IntLoggingLevelType) -> None:
+                   directory: Optional[str], log_level: IntLoggingLevelType,
+                   requirements_file_path: Optional[str]) -> None:
     directory = Path(directory or os.getcwd()).resolve().absolute()
+    if requirements_file_path:
+        requirements_file = open(requirements_file_path, 'w+', encoding='utf-8')
+    else:
+        requirements_file = None
     for filename in glob.glob('*.whl', root_dir=directory):
         full_path = directory / filename
+        metadata = Wheel(str(full_path))
         with zipfile.ZipFile(full_path) as wheel:
             log(f'Extracting {full_path}', log_level)
             if not save_dist_info:
@@ -87,13 +113,17 @@ def extract_wheels(save_wheel: bool, save_dist_info: bool, packages: list[str],
             else:
                 wheel.extractall(directory)
             log(f'Extracted {filename} to {directory}', log_level)
+            write_wheel_requirements(metadata, requirements_file)
+
         if not save_wheel:
             if full_path.exists():
                 os.remove(full_path)
                 log(f'Removed {filename}', log_level)
             else:
-                log(red_text(f'Could not find {filename}'), log_level, 3)
+                log(f'Could not find {filename}', log_level, 3, True)
     log(f'Successfully extracted {" ".join(packages)}', log_level)
+    if requirements_file:
+        requirements_file.close()
 
 
 def main():
@@ -107,7 +137,10 @@ def main():
                         default=4, help='logging level')
     parser.add_argument('--save-wheel', '-s', '-w', action='store_true', help='save .whl files')
     parser.add_argument('--save-dist-info', '-i', action='store_true', help='save .dist-info directory')
+    parser.add_argument('--requirements-file', '--requirements', '-r', type=str, nargs='?',
+                        help='path to requirements file', default=None, const='requirements.txt')
 
+    no_args_is_help(parser)
     args = parser.parse_args()
     packages = args.packages
     log_level = args.logging_level
@@ -118,7 +151,8 @@ def main():
 
     try:
         download_wheels(packages, directory, log_level)
-        extract_wheels(args.save_wheel, args.save_dist_info, packages, directory, log_level)
+        extract_wheels(args.save_wheel, args.save_dist_info, packages, directory, log_level,
+                       args.requirements_file)
     except Exception as error:
         if log_level == 0:
             pass
@@ -126,7 +160,7 @@ def main():
             print(f'{error.__class__.__name__}: {error}')
         else:
             raise error
-        exit(1)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
