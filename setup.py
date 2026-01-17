@@ -1,12 +1,17 @@
-from pip_setuptools import setup, clean, find_packages, requirements
+from pip_setuptools import setup, clean, find_packages, requirements, readme
+
+README = readme() + '\n\n' + readme('README_RU.md')
 
 clean()
 setup(
     name='python-package-downloader',
-    version='1.0.0',
-    py_modules=[],
+    version='1.1.0',
     packages=find_packages(),
-    entry_points=dict(console_scripts=['ppd=python_package_downloader:main']),
+    entry_points=dict(console_scripts=[
+        'ppd=python_package_downloader:main',
+        'python-package-downloader=python_package_downloader:main',
+        'python_package_downloader=python_package_downloader:main'
+    ]),
     install_requires=requirements(),
     author="Маг Ильяс DOMA (MagIlyasDOMA)",
     author_email='magilyas.doma.09@list.ru',
@@ -25,5 +30,5 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    description="A CLI application for easily downloading Python packages"
+    description="A CLI application for easily downloading Python packages\n Приложение командной строки для удобной загрузки пакетов Python"
 )

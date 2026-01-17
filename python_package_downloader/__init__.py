@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-import os, glob, warnings, tempfile, sys, zipfile
+import os, glob, warnings, tempfile, sys, zipfile, requests, platform
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 from typing import Optional, Literal
 from pkginfo import Wheel
+from termcolor import colored
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
@@ -13,6 +14,10 @@ ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info'
 
 LoggingLevelType = Literal[*ALLOWED_LOGGING_LEVEL_VALUES]
 IntLoggingLevelType = Literal[0, 1, 2, 3, 4, 5, 6, 7]
+
+
+def for_print(*values, sep: str = ' ', end: str = ''):
+    return sep.join(values) + end
 
 
 class PythonPackageDownloader:
@@ -28,19 +33,17 @@ class PythonPackageDownloader:
         self.parser.add_argument('--logging-level', '--log-level', '--loglevel', '--log',
                                  '--verbosity', '-l', '-V', type=self.logging_level, dest='logging_level',
                                  default=4, help='logging level')
-        self.parser.add_argument('--save-wheel', '-s', '-w', action='store_true', help='save .whl files')
+        self.parser.add_argument('--save-wheel', '-w', action='store_true', help='save .whl files')
         self.parser.add_argument('--save-dist-info', '-i', action='store_true', help='save .dist-info directory')
         self.parser.add_argument('--requirements-file', '--requirements', '-r', type=str, nargs='?',
-                                 help='path to requirements file', default=None, const='requirements.txt')
+                                 help='path to output requirements file', default=None, const='requirements.txt')
+        # self.parser.add_argument('--from-file', '--from-requirements-file', '-f', type=str, nargs='?',
+        #                          help='path to input requirements file', default=None, const='requirements.txt')
 
     def no_args_is_help(self):
         if len(sys.argv) == 1:
             self.parser.print_help()
             sys.exit(2)
-
-    @staticmethod
-    def red_text(message: str) -> str:
-        return '\033[31m' + message + '\033[0m'
 
     @staticmethod
     def logging_level(level: LoggingLevelType) -> int:
@@ -52,6 +55,16 @@ class PythonPackageDownloader:
             return int(level)
         else:
             return LOGGING_LEVELS.index(level)
+
+    @staticmethod
+    def get_python_interpreter():
+        variants = ['python.exe', 'python3.exe', 'py.exe'] if platform.system() == 'Windows' else ['python', 'python3', 'py']
+        for variant in variants:
+            if os.system(f'{variant} -c "print(end=\'\')"') == 0:
+                return variant
+        else:
+            return sys.executable
+
 
     def pip_log_flags(self, temp_filename: str) -> str:
         match self.log_level:
@@ -74,9 +87,37 @@ class PythonPackageDownloader:
             case _:
                 raise ValueError(f'Invalid logging level: {self.log_level}')
 
+    def check_updates(self):
+        url = 'https://pypi.org/pypi/python-package-downloader/json'
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            latest_version = response.json()['info']['version']
+            notice = f'[{colored('notice', 'blue')}]'
+            if __version__ != latest_version:
+                self.log(for_print(
+                    notice,
+                    'A new release of ppd is available:',
+                    colored(__version__, 'red'),
+                    '->',
+                    colored(latest_version, 'green')
+                ))
+                self.log(for_print(
+                    notice,
+                    'To update, run:',
+                    colored('pip install --upgrade python-package-downloader', 'green'),
+                    'or',
+                    colored('pdd --upgrade')
+                ))
+        except requests.exceptions.RequestException: pass
+
+    def upgrade(self):
+        if '--upgrade' in sys.argv:
+            os.system('pip install --upgrade python-package-downloader')
+
+
     def log(self, message: str, min_level: IntLoggingLevelType = 4, red: bool = False) -> None:
-        if red:
-            message = self.red_text(message)
+        if red: message = colored(message, 'red')
         if min_level <= self.log_level:
             print(message)
 
@@ -160,5 +201,9 @@ class PythonPackageDownloader:
             sys.exit(1)
 
 
-if __name__ == '__main__':
+def main():
     PythonPackageDownloader().run()
+
+
+if __name__ == '__main__':
+    main()
