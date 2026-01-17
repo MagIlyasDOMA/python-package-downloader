@@ -5,7 +5,7 @@ README = readme('pypi_docs/README.md') + '\n\n' + readme('pypi_docs/README_RU.md
 clean()
 setup(
     name='python-package-downloader',
-    version='1.1.1',
+    version='1.1.2',
     packages=find_packages(),
     entry_points=dict(console_scripts=[
         'ppd=python_package_downloader:main',
@@ -30,5 +30,7 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    description="A CLI application for easily downloading Python packages\n Приложение командной строки для удобной загрузки пакетов Python"
+    description="A CLI application for easily downloading Python packages",
+    long_description=README,
+    long_description_content_type="text/markdown",
 )
