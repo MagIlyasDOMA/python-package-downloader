@@ -3,7 +3,7 @@ from pip_setuptools import setup, clean, find_packages, requirements, readme
 clean()
 setup(
     name='python-package-downloader',
-    version='1.1.3',
+    version='1.2.0',
     packages=find_packages(),
     entry_points=dict(console_scripts=[
         'ppd=python_package_downloader:main',

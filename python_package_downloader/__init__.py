@@ -6,7 +6,7 @@ from typing import Optional, Literal
 from pkginfo import Wheel
 from termcolor import colored
 
-__version__ = '1.1.3'
+__version__ = '1.2.0'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
@@ -20,13 +20,60 @@ def for_print(*values, sep: str = ' ', end: str = ''):
     return sep.join(values) + end
 
 
+class PPDUpdateCheckerAndLogger:
+    def __init__(self, log_level: IntLoggingLevelType = 4):
+        self.log_level = log_level
+
+    def log(self, message: str, min_level: IntLoggingLevelType = 4, red: bool = False) -> None:
+        if red: message = colored(message, 'red')
+        if min_level <= self.log_level:
+            print(message)
+
+    def check_updates(self):
+        url = 'https://pypi.org/pypi/python-package-downloader/json'
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            latest_version = response.json()['info']['version']
+            notice = f'[{colored('notice', 'blue')}]'
+            if __version__ != latest_version:
+                self.log(for_print(
+                    notice,
+                    'A new release of ppd is available:',
+                    colored(__version__, 'red'),
+                    '->',
+                    colored(latest_version, 'green')
+                ))
+                self.log(for_print(
+                    notice,
+                    'To update, run:',
+                    colored('pip install --upgrade python-package-downloader', 'green'),
+                    'or',
+                    colored('pdd --upgrade', 'green')
+                ))
+        except requests.exceptions.RequestException:
+            pass
+
+
+class PythonPackageDownloaderParser(ArgumentParser):
+    def __init__(self, description, *args, **kwargs):
+        super().__init__(*args, **kwargs, description=description)
+        self.update_checker_and_logger = PPDUpdateCheckerAndLogger()
+
+    def print_help(self, file = None):
+        super().print_help(file)
+        print()
+        self.update_checker_and_logger.check_updates()
+
+
 class PythonPackageDownloader:
     def __init__(self):
         self._init_parser()
         self.requirements_file = None
+        self.update_checker_and_logger = PPDUpdateCheckerAndLogger()
 
     def _init_parser(self) -> None:
-        self.parser = ArgumentParser()
+        self.parser = PythonPackageDownloaderParser('Python packages downloader')
         self.parser.add_argument('packages', nargs='+', type=str, help='packages to download')
         self.parser.add_argument('--version', '-v', action='version', version=__version__)
         self.parser.add_argument('--directory', '-d', type=str, help='directory for unpacking')
@@ -65,7 +112,6 @@ class PythonPackageDownloader:
         else:
             return sys.executable
 
-
     def pip_log_flags(self, temp_filename: str) -> str:
         match self.log_level:
             case 0:
@@ -88,33 +134,18 @@ class PythonPackageDownloader:
                 raise ValueError(f'Invalid logging level: {self.log_level}')
 
     def check_updates(self):
-        url = 'https://pypi.org/pypi/python-package-downloader/json'
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            latest_version = response.json()['info']['version']
-            notice = f'[{colored('notice', 'blue')}]'
-            if __version__ != latest_version:
-                self.log(for_print(
-                    notice,
-                    'A new release of ppd is available:',
-                    colored(__version__, 'red'),
-                    '->',
-                    colored(latest_version, 'green')
-                ))
-                self.log(for_print(
-                    notice,
-                    'To update, run:',
-                    colored('pip install --upgrade python-package-downloader', 'green'),
-                    'or',
-                    colored('pdd --upgrade')
-                ))
-        except requests.exceptions.RequestException: pass
+        return self.update_checker_and_logger.check_updates()
 
     def upgrade(self):
-        if '--upgrade' in sys.argv:
-            os.system('pip install --upgrade python-package-downloader')
-
+        with tempfile.NamedTemporaryFile('w+') as log_file:
+            for arg in ('--logging-level', '--log-level', '--loglevel',
+                        '--log', '--verbosity', '-l', '-V'):
+                if arg in sys.argv:
+                    self.log_level = self.logging_level(sys.argv[sys.argv.index(arg) + 1])
+            if '--upgrade' in sys.argv:
+                command = 'pip install --upgrade python-package-downloader' + self.pip_log_flags(log_file.name)
+                self.log(f'Running a command {command}', 5)
+                os.system(command)
 
     def log(self, message: str, min_level: IntLoggingLevelType = 4, red: bool = False) -> None:
         if red: message = colored(message, 'red')
@@ -173,6 +204,14 @@ class PythonPackageDownloader:
         if self.requirements_file:
             self.requirements_file.close()
 
+    @property
+    def log_level(self):
+        return self.update_checker_and_logger.log_level
+
+    @log_level.setter
+    def log_level(self, value):
+        self.update_checker_and_logger.log_level = value
+
     def _init_args(self, args):
         self.packages = args.packages
         self.log_level = args.logging_level
@@ -181,8 +220,16 @@ class PythonPackageDownloader:
         self.save_dist_info = args.save_dist_info
         self.requirements_file_path = args.requirements_file
 
+    def get_help(self):
+        for arg in ('-h', '--help'):
+            if arg in sys.argv:
+                self.parser.print_help()
+                sys.exit(0)
+
     def run(self):
         self.no_args_is_help()
+        self.get_help()
+        self.upgrade()
         self._init_args(self.parser.parse_args())
 
         if self.log_level < 3:
