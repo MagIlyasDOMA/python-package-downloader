@@ -6,7 +6,7 @@ from typing import Optional, Literal
 from pkginfo import Wheel
 from termcolor import colored
 
-__version__ = '1.2.0'
+__version__ = '1.2.2'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
@@ -49,7 +49,7 @@ class PPDUpdateCheckerAndLogger:
                     'To update, run:',
                     colored('pip install --upgrade python-package-downloader', 'green'),
                     'or',
-                    colored('pdd --upgrade', 'green')
+                    colored('ppd --upgrade', 'green')
                 ))
         except requests.exceptions.RequestException:
             pass
@@ -146,6 +146,7 @@ class PythonPackageDownloader:
                 command = 'pip install --upgrade python-package-downloader' + self.pip_log_flags(log_file.name)
                 self.log(f'Running a command {command}', 5)
                 os.system(command)
+                sys.exit(0)
 
     def log(self, message: str, min_level: IntLoggingLevelType = 4, red: bool = False) -> None:
         if red: message = colored(message, 'red')
