@@ -6,7 +6,7 @@ from typing import Optional, Literal
 from pkginfo import Wheel
 from termcolor import colored
 
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
