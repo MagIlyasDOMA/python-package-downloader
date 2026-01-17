@@ -1,11 +1,11 @@
 from pip_setuptools import setup, clean, find_packages, requirements, readme
 
-README = readme() + '\n\n' + readme('README_RU.md')
+README = readme('pypi_docs/README.md') + '\n\n' + readme('pypi_docs/README_RU.md')
 
 clean()
 setup(
     name='python-package-downloader',
-    version='1.1.0',
+    version='1.1.1',
     packages=find_packages(),
     entry_points=dict(console_scripts=[
         'ppd=python_package_downloader:main',
