@@ -6,7 +6,7 @@ from typing import Literal
 from pkginfo import Wheel
 from termcolor import colored
 
-__version__ = '1.3.0'
+__version__ = '2.0.0'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
@@ -83,11 +83,12 @@ class PythonPackageDownloader:
         self.parser.add_argument('--save-wheel', '-w', action='store_true', help='save .whl files')
         self.parser.add_argument('--save-dist-info', '-i', action='store_true', help='save .dist-info directory')
         self.parser.add_argument('--requirements-file', '--requirements', '-r', type=str, nargs='?',
-                                 help='path to output requirements file', default=None, const='requirements.txt')
-        self.parser.add_argument('--upgrade', '-U', action='store_true', help='upgrade ppd and exit')
-        self.parser.add_argument('--from-file', '--from-requirements-file', '-f', type=str, nargs='?',
                                  help='path to input requirements file', default=None, const='requirements.txt',
                                  dest='input_req_files', action='append')
+        self.parser.add_argument('--upgrade', '-U', action='store_true', help='upgrade ppd and exit')
+        self.parser.add_argument('--output-requirements-file', '--output-requirements', '-f', type=str, nargs='?',
+                                 help='path to output requirements file', default=None, const='requirements.txt',
+                                 dest='requirements_file')
 
     def no_args_is_help(self):
         if len(sys.argv) == 1:
