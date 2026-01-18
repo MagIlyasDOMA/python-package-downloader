@@ -6,7 +6,7 @@ from typing import Literal
 from pkginfo import Wheel
 from termcolor import colored
 
-__version__ = '1.2.3'
+__version__ = '1.3.0'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
@@ -85,8 +85,9 @@ class PythonPackageDownloader:
         self.parser.add_argument('--requirements-file', '--requirements', '-r', type=str, nargs='?',
                                  help='path to output requirements file', default=None, const='requirements.txt')
         self.parser.add_argument('--upgrade', '-U', action='store_true', help='upgrade ppd and exit')
-        # self.parser.add_argument('--from-file', '--from-requirements-file', '-f', type=str, nargs='?',
-        #                          help='path to input requirements file', default=None, const='requirements.txt')
+        self.parser.add_argument('--from-file', '--from-requirements-file', '-f', type=str, nargs='?',
+                                 help='path to input requirements file', default=None, const='requirements.txt',
+                                 dest='input_req_files', action='append')
 
     def no_args_is_help(self):
         if len(sys.argv) == 1:
@@ -161,9 +162,15 @@ class PythonPackageDownloader:
                 self.requirements_file.write(f'{req}\n')
                 self.log(req, 7)
 
+    def input_req_files_argv(self) -> str:
+        args = ''
+        for arg in self.input_req_files:
+            args += f' -r {arg}'
+        return args
+
     def download_wheels(self) -> None:
         with tempfile.NamedTemporaryFile('w+') as log_file:
-            command = 'pip download ' + ' '.join(self.packages) + ' --no-deps'
+            command = 'pip download ' + ' '.join(self.packages) + self.input_req_files_argv() + ' --no-deps'
             if self.directory:
                 command += f' -d {self.directory}'
             command += self.pip_log_flags(log_file.name)
@@ -218,6 +225,7 @@ class PythonPackageDownloader:
         self.save_dist_info = args.save_dist_info
         self.requirements_file_path = args.requirements_file
         self.upgrade_flag = args.upgrade
+        self.input_req_files = args.input_req_files
 
     def validate_args(self):
         if not self.upgrade_flag and not self.packages:

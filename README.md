@@ -37,6 +37,15 @@ ppd flask --save-wheel
 
 # Save .dist-info
 ppd django --save-dist-info
+
+# Downloading from requirements.txt
+ppd --from-file requirements.txt
+
+# Loading from multiple dependency files
+ppd --from-file prod_requirements.txt --from-file dev_requirements.txt
+
+# Updating the ppd
+ppd --upgrade
 ```
 
 ## Command line options
@@ -44,13 +53,15 @@ ppd django --save-dist-info
 - `packages` — one or more packages to download (positional argument)
 
 ### Basic options
-| Option | Short version | Description |
-|---------------------------------------------|-----------------|-----------------------------------------------|
-| `-- version`, `-v` | `-v` | Show program version |
-| `--directory`, `-d` | `-d <path>`     | Directory for downloading and unpacking packages |
-| `--save-wheel`, `-w` | `-w` | Save .whl files after unpacking |
-| `--save-dist-info`, `-i` | `-i` | Save .dist-info directories |
-| `--requirements-file`, `--requirements`, `-r` | `-r [path]`     | Create a file requirements.txt with dependencies |
+| Option | Short version | Description                                           |
+|---------------------------------------------|-----------------|-------------------------------------------------------|
+| `-- version`, `-v` | `-v` | Show program version                                  |
+| `--directory`, `-d` | `-d <path>`     | Directory for downloading and unpacking packages      |
+| `--save-wheel`, `-w` | `-w` | Save .whl files after unpacking                       |
+| `--save-dist-info`, `-i` | `-i` | Save .dist-info directories                           |
+| `--requirements-file`, `--requirements`, `-r` | `-r [path]`     | Create a file requirements.txt with dependencies      |
+| `--upgrade`, `-U`                               | `-U`            | Update `ppd` to the up to the latest version and exit |
+| `--from-file`, `--from-requirements-file`, `-f` | `-f [путь]`     | Download packages from requirements.txt file           |
 
 ### Output control (logging)
 | Option | Short version | Values | Description |
@@ -70,9 +81,10 @@ ppd django --save-dist-info
 ## Detailed description of the functionality
 ### The work process
 1. **Downloading packages:** The program uses `pip download` to download `.whl` files without dependencies
-2. **Unpacking:** Automatically extracts the contents of `.whl` files
-3. **Cleaning:** By default, deletes the `.whl` files and `.dist-info' directories after unpacking
-4. **Dependency Management:** Can create a file `requirements.txt ` with package dependencies
+2. **Поддержка файлов:** Может читать пакеты из файлов `requirements.txt`
+3. **Unpacking:** Automatically extracts the contents of `.whl` files
+4. **Cleaning:** By default, deletes the `.whl` files and `.dist-info' directories after unpacking
+5. **Dependency Management:** Can create a file `requirements.txt ` with package dependencies
 
 ### Features
 - **Automatic Python detection:** Finds an available Python interpreter in the system
@@ -124,6 +136,64 @@ ppd problematic-package --log-level silly
 ppd problematic-package -l 7
 ```
 
+### Example 5: Downloading from a dependency file
+```shell
+# Create requirements.txt
+echo "requests==2.31.0" > requirements.txt
+echo "numpy>=1.24.0" >> requirements.txt
+
+# Download all packages from
+the ppd file --from-file requirements.txt
+
+# Or short form
+ppd -f
+```
+
+### Example 6: Combining sources
+```shell
+# Download packages from a file and additional
+ppd --from-file packages base_requirements.txt flask django
+
+# Multiple
+ppd -f dependency files requirements.txt -f dev_requirements.txt
+```
+
+### Example 7: Update and Management
+```shell
+# Check for updates (automatically at --help)
+ppd --help
+
+# Upgrade ppd
+ppd --upgrade
+# or
+ppd -U
+
+# Update with minimal output
+ppd -U -l silent
+```
+
+### Example 8: Creating a portable environment
+```shell
+# Create a directory with all the dependencies of the project
+ppd  --from-file requirements.txt --directory ./vendor --requirements-file ./vendor_requirements.txt
+
+# Result:
+# - ./vendor/ with unpacked packages
+# - ./vendor_requirements.txt with all the dependencies
+```
+
+### Example 9: Advanced logging
+```shell
+# Complete debugging of the download process
+ppd complex-package --log-level silly --directory ./debug
+
+# Quiet mode for scripts
+ppd some-package -l 0
+
+# Errors and warnings only
+ppd another-package --log-level warning
+```
+
 ## Requirements
 - Python >= 3.10
 - Internet access to download packages
@@ -141,6 +211,7 @@ ppd problematic-package -l 7
 
 ## Notes
 - The program uses `pip download --no-deps`, so dependencies are not downloaded automatically
+- The `--upgrade` option cannot be used with other packages.
 - To get dependencies, use the `-r` option to create a file. requirements.txt
 - It is recommended to use virtual environments for packet isolation
 
@@ -159,6 +230,15 @@ ppd --upgrade
 - `0` — successful completion
 - `1` — error during execution 
 - `2` — syntax error (the arguments are specified incorrectly)
+
+## Backward compatibility
+All commands from previous versions continue to work. The new options add functionality without breaking the existing API.
+
+## Tips for use
+1. **For CI/CD:** Use `-l silent` for clean output in scripts
+2. **For debugging:** Use `-l silly` for maximum information
+3. **For offline installations:** Combine `-f` and `-r` to create a complete set of dependencies
+4. **To update:** Check for updates regularly via `ppd --help`
 
 <a id="ru-doc"></a>
 # Python Package Downloader (PPD) - Документация
@@ -199,6 +279,15 @@ ppd flask --save-wheel
 
 # Сохранение .dist-info директорий
 ppd django --save-dist-info
+
+# Загрузка из файла requirements.txt
+ppd --from-file requirements.txt
+
+# Загрузка из нескольких файлов зависимостей
+ppd --from-file prod_requirements.txt --from-file dev_requirements.txt
+
+# Обновление самого ppd
+ppd --upgrade
 ```
 
 ## Опции командной строки
@@ -206,13 +295,15 @@ ppd django --save-dist-info
 - `packages` — один или несколько пакетов для загрузки (позиционный аргумент)
 
 ### Основные опции
-| Опция                                         | Короткая версия | Описание                                      |
-|-----------------------------------------------|-----------------|-----------------------------------------------|
-| `--version`, `-v`                             | `-v`            | Показать версию программы                     |
-| `--directory`, `-d`                           | `-d <путь>`     | Директория для загрузки и распаковки пакетов  |
-| `--save-wheel`, `-w`                          | `-w`            | Сохранить .whl файлы после распаковки         |
-| `--save-dist-info`, `-i`                      | `-i`            | Сохранить .dist-info директории               |
-| `--requirements-file`, `--requirements`, `-r` | `-r [путь]`     | Создать файл requirements.txt с зависимостями |
+| Опция                                           | Короткая версия | Описание                                      |
+|-------------------------------------------------|-----------------|-----------------------------------------------|
+| `--version`, `-v`                               | `-v`            | Показать версию программы                     |
+| `--directory`, `-d`                             | `-d <путь>`     | Директория для загрузки и распаковки пакетов  |
+| `--save-wheel`, `-w`                            | `-w`            | Сохранить .whl файлы после распаковки         |
+| `--save-dist-info`, `-i`                        | `-i`            | Сохранить .dist-info директории               |
+| `--requirements-file`, `--requirements`, `-r`   | `-r [путь]`     | Создать файл requirements.txt с зависимостями |
+| `--upgrade`, `-U`                               | `-U`            | Обновить `ppd` до последней версии и выйти    |
+| `--from-file`, `--from-requirements-file`, `-f` | `-f [путь]`     | Загрузить пакеты из файла requirements.txt    |
 
 ### Управление выводом (логированием)
 | Опция                                                                              | Короткая версия | Значения                                                                                | Описание                   |
@@ -232,9 +323,10 @@ ppd django --save-dist-info
 ## Детальное описание функциональности
 ### Процесс работы
 1. **Загрузка пакетов:** Программа использует `pip download` для загрузки `.whl` файлов без зависимостей
-2. **Распаковка:** Автоматически извлекает содержимое `.whl` файлов
-3. **Очистка:** По умолчанию удаляет `.whl` файлы и `.dist-info` директории после распаковки
-4. **Управление зависимостями:** Может создать файл `requirements.txt` с зависимостями пакетов
+2. **Поддержка файлов:** Может читать пакеты из файлов `requirements.txt`
+3. **Распаковка:** Автоматически извлекает содержимое `.whl` файлов
+4. **Очистка:** По умолчанию удаляет `.whl` файлы и `.dist-info` директории после распаковки
+5. **Управление зависимостями:** Может создать файл `requirements.txt` с зависимостями пакетов
 
 ### Особенности
 - **Автоматическое определение Python:** Находит доступный интерпретатор Python в системе
@@ -286,6 +378,64 @@ ppd problematic-package --log-level silly
 ppd problematic-package -l 7
 ```
 
+### Пример 5: Загрузка из файла зависимостей
+```shell
+# Создать requirements.txt
+echo "requests==2.31.0" > requirements.txt
+echo "numpy>=1.24.0" >> requirements.txt
+
+# Загрузить все пакеты из файла
+ppd --from-file requirements.txt
+
+# Или короткая форма
+ppd -f
+```
+
+### Пример 6: Комбинирование источников
+```shell
+# Загрузить пакеты из файла и дополнительные пакеты
+ppd --from-file base_requirements.txt flask django
+
+# Несколько файлов зависимостей
+ppd -f requirements.txt -f dev_requirements.txt
+```
+
+### Пример 7: Обновление и управление
+```shell
+# Проверить наличие обновлений (автоматически при --help)
+ppd --help
+
+# Обновить ppd
+ppd --upgrade
+# или
+ppd -U
+
+# Обновить с минимальным выводом
+ppd -U -l silent
+```
+
+### Пример 8: Создание портативного окружения
+```shell
+# Создать директорию со всеми зависимостями проекта
+ppd --from-file requirements.txt --directory ./vendor --requirements-file ./vendor_requirements.txt
+
+# Результат:
+# - ./vendor/ с распакованными пакетами
+# - ./vendor_requirements.txt со всеми зависимостями
+```
+
+### Пример 9: Продвинутое логирование
+```shell
+# Полная отладка процесса загрузки
+ppd complex-package --log-level silly --directory ./debug
+
+# Тихий режим для скриптов
+ppd some-package -l 0
+
+# Только ошибки и предупреждения
+ppd another-package --log-level warning
+```
+
 ## Требования
 - Python >= 3.10
 - Доступ к интернету для загрузки пакетов
@@ -305,6 +455,7 @@ ppd problematic-package -l 7
 - Программа использует `pip download --no-deps`, поэтому зависимости не загружаются автоматически
 - Для получения зависимостей используйте опцию `-r` для создания файла requirements.txt
 - Рекомендуется использовать виртуальные окружения для изоляции пакетов
+- Опция `--upgrade` не может использоваться вместе с другими пакетами
 
 ## Обновление
 ```shell
@@ -322,3 +473,11 @@ ppd --upgrade
 - `1` — ошибка при выполнении 
 - `2` — синтаксическая ошибка (неправильно указаны аргументы)
 
+## Обратная совместимость
+Все команды из предыдущих версий продолжают работать. Новые опции добавляют функциональность без нарушения существующего API.
+
+## Советы по использованию
+1. **Для CI/CD:** Используйте `-l silent` для чистого вывода в скриптах
+2. **Для отладки:** Используйте `-l silly` для максимальной информации
+3. **Для офлайн-инсталляций:** Комбинируйте `-f` и `-r` для создания полного набора зависимостей
+4. **Для обновления:** Регулярно проверяйте обновления через `ppd --help`
