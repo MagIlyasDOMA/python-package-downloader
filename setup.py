@@ -3,7 +3,7 @@ from pip_setuptools import setup, clean, find_packages, requirements, readme
 clean()
 setup(
     name='python-package-downloader',
-    version='1.2.2',
+    version='1.2.3',
     packages=find_packages(),
     entry_points=dict(console_scripts=[
         'ppd=python_package_downloader:main',
@@ -18,6 +18,7 @@ setup(
     classifiers=[
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
+        'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.10',

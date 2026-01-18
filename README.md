@@ -158,7 +158,7 @@ ppd --upgrade
 ## Exit codes
 - `0` — successful completion
 - `1` — error during execution 
-- `2` — help is called (when running without arguments)
+- `2` — syntax error (the arguments are specified incorrectly)
 
 <a id="ru-doc"></a>
 # Python Package Downloader (PPD) - Документация
@@ -320,5 +320,5 @@ ppd --upgrade
 ## Коды выхода
 - `0` — успешное выполнение
 - `1` — ошибка при выполнении 
-- `2` — вызвана справка (при запуске без аргументов)
+- `2` — синтаксическая ошибка (неправильно указаны аргументы)
 

@@ -2,11 +2,11 @@
 import os, glob, warnings, tempfile, sys, zipfile, requests, platform
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal
 from pkginfo import Wheel
 from termcolor import colored
 
-__version__ = '1.2.2'
+__version__ = '1.2.3'
 
 LOGGING_LEVELS = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug', 'silly')
 ALLOWED_LOGGING_LEVEL_VALUES = ('silent', 'critical', 'error', 'warning', 'info', 'verbose', 'debug',
@@ -74,7 +74,7 @@ class PythonPackageDownloader:
 
     def _init_parser(self) -> None:
         self.parser = PythonPackageDownloaderParser('Python packages downloader')
-        self.parser.add_argument('packages', nargs='+', type=str, help='packages to download')
+        self.parser.add_argument('packages', nargs='*', type=str, help='packages to download')
         self.parser.add_argument('--version', '-v', action='version', version=__version__)
         self.parser.add_argument('--directory', '-d', type=str, help='directory for unpacking')
         self.parser.add_argument('--logging-level', '--log-level', '--loglevel', '--log',
@@ -84,13 +84,14 @@ class PythonPackageDownloader:
         self.parser.add_argument('--save-dist-info', '-i', action='store_true', help='save .dist-info directory')
         self.parser.add_argument('--requirements-file', '--requirements', '-r', type=str, nargs='?',
                                  help='path to output requirements file', default=None, const='requirements.txt')
+        self.parser.add_argument('--upgrade', '-U', action='store_true', help='upgrade ppd and exit')
         # self.parser.add_argument('--from-file', '--from-requirements-file', '-f', type=str, nargs='?',
         #                          help='path to input requirements file', default=None, const='requirements.txt')
 
     def no_args_is_help(self):
         if len(sys.argv) == 1:
             self.parser.print_help()
-            sys.exit(2)
+            sys.exit(0)
 
     @staticmethod
     def logging_level(level: LoggingLevelType) -> int:
@@ -137,12 +138,8 @@ class PythonPackageDownloader:
         return self.update_checker_and_logger.check_updates()
 
     def upgrade(self):
-        with tempfile.NamedTemporaryFile('w+') as log_file:
-            for arg in ('--logging-level', '--log-level', '--loglevel',
-                        '--log', '--verbosity', '-l', '-V'):
-                if arg in sys.argv:
-                    self.log_level = self.logging_level(sys.argv[sys.argv.index(arg) + 1])
-            if '--upgrade' in sys.argv:
+        if self.upgrade_flag:
+            with tempfile.NamedTemporaryFile('w+') as log_file:
                 command = 'pip install --upgrade python-package-downloader' + self.pip_log_flags(log_file.name)
                 self.log(f'Running a command {command}', 5)
                 os.system(command)
@@ -220,18 +217,19 @@ class PythonPackageDownloader:
         self.save_wheel = args.save_wheel
         self.save_dist_info = args.save_dist_info
         self.requirements_file_path = args.requirements_file
+        self.upgrade_flag = args.upgrade
 
-    def get_help(self):
-        for arg in ('-h', '--help'):
-            if arg in sys.argv:
-                self.parser.print_help()
-                sys.exit(0)
+    def validate_args(self):
+        if not self.upgrade_flag and not self.packages:
+            self.parser.error('the following arguments are required: packages')
+        elif self.upgrade_flag and self.packages:
+            self.parser.error('argument --upgrade: not allowed with packages')
 
     def run(self):
         self.no_args_is_help()
-        self.get_help()
-        self.upgrade()
         self._init_args(self.parser.parse_args())
+        self.validate_args()
+        self.upgrade()
 
         if self.log_level < 3:
             warnings.filterwarnings('ignore')
