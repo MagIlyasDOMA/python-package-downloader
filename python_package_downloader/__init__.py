@@ -2,7 +2,7 @@
 import os, glob, warnings, tempfile, sys, zipfile, requests, platform
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Union
 from pkginfo import Wheel
 from termcolor import colored
 
@@ -157,6 +157,7 @@ class PythonPackageDownloader:
             self.log(f'Adding {wheel_file.name} package requirements to the {self.requirements_file.name} file',
                      5)
             self.log(f'{wheel_file.name} package requirements:', 7)
+            self.requirements_file.write(f'\n# {wheel_file.name} package requirements:')
             for req in wheel_file.requires_dist:
                 if '; extra' in req:
                     break
@@ -177,6 +178,12 @@ class PythonPackageDownloader:
             command += self.pip_log_flags(log_file.name)
             self.log(f'Running a command {command}', 5)
             os.system(command)
+
+    def read_requirements_file(self, path_or_url: str, parse: bool = True) -> Union[str, list]:
+        pass
+
+    def initial_requirements_in_the_file(self):
+        pass
 
     def extract_wheels(self) -> None:
         directory = Path(self.directory or os.getcwd()).resolve().absolute()

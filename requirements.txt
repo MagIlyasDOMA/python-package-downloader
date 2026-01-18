@@ -1,3 +1,4 @@
 pkginfo>=1.12.1.2
 requests
 termcolor>=3.3.0
+urlpath-filereader>=1.0.0
