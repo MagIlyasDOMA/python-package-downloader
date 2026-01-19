@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Literal, Union
 from pkginfo import Wheel
 from termcolor import colored
+from urlpath_filereader import read_file
 
 __version__ = '2.0.0'
 
@@ -179,8 +180,21 @@ class PythonPackageDownloader:
             self.log(f'Running a command {command}', 5)
             os.system(command)
 
+    @staticmethod
+    def parse_requirements(text: str) -> list:
+        output = list()
+        for line in text.splitlines():
+            line = line.strip()
+            if line[0] == '#':
+                continue
+            output.append(line.split('#')[0].strip())
+        return output
+
     def read_requirements_file(self, path_or_url: str, parse: bool = True) -> Union[str, list]:
-        pass
+        text = read_file(path_or_url)
+        if not parse:
+            return text
+        return self.parse_requirements(text)
 
     def initial_requirements_in_the_file(self):
         pass
